@@ -1,6 +1,9 @@
 { stdenv, pkgs }:
 
-{
+let
+  myEmacs = import ./emacs.nix { inherit pkgs; };
+
+in {
   base = with pkgs; [
     coreutils   # expected linux tools
     curl
@@ -55,6 +58,10 @@
     rxvt_unicode_with-plugins  # terminal
     wpa_supplicant_gui         # WiFi
     zathura                    # pdf
+  ];
+
+  emacs = [
+    myEmacs
   ];
 
   fonts = with import ./fonts.nix { inherit stdenv, pkgs; }[
