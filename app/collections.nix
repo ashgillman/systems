@@ -64,7 +64,7 @@ in {
     myEmacs
   ];
 
-  fonts = with import ./fonts.nix { inherit stdenv, pkgs; }[
+  fonts = with pkgs; with import ./fonts.nix { inherit stdenv pkgs; }; [
     corefonts
     inconsolata
     nerdfont_dejavu

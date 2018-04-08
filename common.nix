@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 let
   mypkgsDir = "/etc/nixpkgs";
@@ -16,8 +16,9 @@ in {
 
   nix = {
     nixPath = [
-      "nixpkgs=${mypkgsDir}"
+      #"nixpkgs=${mypkgsDir}"
       # "mypkgs=${mypkgsDir}" # only now for compatability
+      "nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos/nixpkgs"
       "nixos-config=/etc/nixos/configuration.nix"
       "/nix/var/nix/profiles/per-user/root/channels"
     ];
@@ -39,7 +40,7 @@ in {
   environment = {
     # systemPackages = common_config.systemPackages.paths;
     systemPackages = with collections;
-      [ pkgs.coreutils ] ++ base ++ baseNixosOnly ++ nix ++ guis ++ emacs;
+      base ++ extras ++ nix ++ guis;
 
     variables = {
       EDITOR = "vim";
@@ -89,7 +90,7 @@ in {
     };
   };
 
-  system.stateVersion = "17.03";
+  system.stateVersion = lib.mkDefault "18.03";
 
   programs.zsh = {
     enable = true;

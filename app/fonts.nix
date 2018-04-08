@@ -1,6 +1,6 @@
 { stdenv, pkgs }:
 
-in {
+{
   nerdfont_inconsolata = stdenv.mkDerivation rec {
     name = "nerdfont-inconsolata";
 

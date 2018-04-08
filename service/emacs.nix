@@ -1,7 +1,7 @@
 { config, pkgs, ... }:
 
 let
-  emacs = import ../nixpkgs/emacs.nix { inherit pkgs; };
+  emacs = import ../app/emacs.nix { inherit pkgs; };
 in {
   environment.systemPackages = [ emacs pkgs.aspell pkgs.aspellDicts.en ];
 
