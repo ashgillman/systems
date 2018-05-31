@@ -93,16 +93,19 @@ in {
 
   system.stateVersion = lib.mkDefault "18.03";
 
-  programs.zsh = {
-    enable = true;
-    enableCompletion = true;
+  programs = {
+    zsh = {
+      enable = true;
+      enableCompletion = true;
 
-    interactiveShellInit = ''
-      export ZSH=${pkgs.oh-my-zsh}/share/oh-my-zsh/
-      source $HOME/.zshrc
-    '';
+      interactiveShellInit = ''
+        export ZSH=${pkgs.oh-my-zsh}/share/oh-my-zsh/
+        source $HOME/.zshrc
+      '';
 
-    promptInit = ""; # avoid a conflict with oh-my-zsh
+      promptInit = ""; # avoid a conflict with oh-my-zsh
+    };
+    ssh.startAgent = true;
   };
 
   services = {
