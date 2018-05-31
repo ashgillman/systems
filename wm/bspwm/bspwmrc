@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+#sxhkd &
+
+bspc config border_width 2
+bspc config window_gap   40
+bspc config top_padding  20 # dzen
+
+bspc config split_ratio               0.52
+bspc config borderless_monocle        false
+bspc config gapless_monocle           true
+bspc config click_to_focus            true
+bspc config remove_disabled_monitors  false # do this manually
+bspc config remove_unplugged_monitors false # do this manually
+bspc config merge_overlapping_monitors false
+
+multimonitor_setup
+
+bspc rule -a Firefox desktop=^2 follow=on
+bspc rule -a Mail desktop=^4 follow=on # Thunderbird, but not new mail window
+bspc rule -a feh state=floating
+bspc rule -a Gimp state=floating
+#bspc rule -a Gimp desktop=^8 state=floating follow=on
+#bspc rule -a Kupfer.py focus=on
+#bspc rule -a Screenkey manage=off

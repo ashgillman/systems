@@ -1,82 +1,81 @@
 { config, pkgs, ... }:
 
 let
-  stdenv = pkgs.stdenv;
+  refreshmon_bspwm = pkgs.writeShellScriptBin "refreshmon_bspwm" ''
+    refreshmon
 
-  nerdfont_inconsolata = stdenv.mkDerivation rec {
-    name = "nerdfont-inconsolata";
+    function getmon () {
+      xrandr | grep ' connected' | cut -d' ' -f1
+    }
 
-    src = pkgs.fetchurl {
-      url = https://github.com/ryanoasis/nerd-fonts/releases/download/v1.0.0/Inconsolata.zip;
-      sha256 = "0d0hkc3sp7rn4d6hx7l5r7fqk4g35yg4pn4wsz1ppn86glgs3psy";
-    };
+    # Update desktops
+    I=1
+    M=$(getmon | wc -l)
+    if [[ "$M" == 1 ]]; then
+      bspc monitor -d I II III IV V VI VII VIII IX X
+    elif [[ "$M" == 2 ]]; then
+      bspc monitor $(getmon | awk NR==2) -d I II III IV V
+      bspc monitor $(getmon | awk NR==1) -d VI VII VIII IX X
+    elif [[ "$M" == 3 ]]; then
+      bspc monitor $(getmon | awk NR==3) -d I II III IV
+      bspc monitor $(getmon | awk NR==2) -d V VI VII
+      bspc monitor $(getmon | awk NR==1) -d VIII IX X
+    elif [[ "$M" == 4 ]]; then
+      bspc monitor $(getmon | awk NR==4) -d I II III
+      bspc monitor $(getmon | awk NR==3) -d IV V VI
+      bspc monitor $(getmon | awk NR==2) -d VII VIII
+      bspc monitor $(getmon | awk NR==1) -d IX X
+    elif [[ "$M" == 5 ]]; then
+      bspc monitor $(getmon | awk NR==5) -d I II
+      bspc monitor $(getmon | awk NR==4) -d III IV
+      bspc monitor $(getmon | awk NR==3) -d V VI
+      bspc monitor $(getmon | awk NR==2) -d VII VIII
+      bspc monitor $(getmon | awk NR==1) -d IX X
+    else
+      for monitor in $(getmon); do
+      bspc monitor $monitor \
+          -n "$I" \
+          -d $I/{a,b,c}
+      let I++
+      done
+    fi
 
-    unpackCmd = ''
-      ${pkgs.unzip}/bin/unzip $curSrc -d fonts
-    '';
-    dontBuild = true;
-    installPhase = ''
-      mkdir -p $out/share/fonts/opentype
-      cp * $out/share/fonts/opentype
-    '';
-  };
-
-  nerdfont_dejavu = stdenv.mkDerivation rec {
-    name = "nerdfont-dejavu";
-
-    src = pkgs.fetchurl {
-      url = https://github.com/ryanoasis/nerd-fonts/releases/download/v1.0.0/DejaVuSansMono.zip;
-      sha256 = "0qzpawa6hihh6s56wmpsnq55rxphmcrb7z7xk4cd7j3bqhp1dydv";
-    };
-
-    unpackCmd = ''
-      ${pkgs.unzip}/bin/unzip $curSrc -d fonts
-    '';
-    dontBuild = true;
-    installPhase = ''
-      mkdir -p $out/share/fonts/opentype
-      cp * $out/share/fonts/opentype
-    '';
-  };
-
-
-  psutil5 = pkgs.python36Packages.psutil.overrideDerivation (oldAttrs: rec {
-    name = "psutil-${version}";
-    version = "5.1.3";
-
-    src = pkgs.fetchurl {
-      url = "mirror://pypi/p/psutil/${name}.tar.gz";
-      sha256 = "0aqg2893irpn5zmy7c0p0qizgf51shidhfyb8fhv0ll1vj5xb6wm";
-    };
-  });
-
-  python = pkgs.python36.withPackages (pypkgs: [ psutil5 ]);
+    # remove unused bspwm monitors
+    for bspwm_monitor in $(bspc query -M --names); do
+      contained=false
+      for monitor in $(xrandr | grep ' connected' | cut -d' ' -f1); do
+        if [[ "$bspwm_monitor" = "$monitor" ]]; then
+          contained=true
+        fi
+      done
+      if [ "$contained" = false ]; then
+        bspc monitor "$bspwm_monitor" --remove
+      fi
+    done
+  '';
 
 in {
+  imports = [
+    ./common-extras.nix
+  ];
+
   services.xserver = {
-    desktopManager.default = "none";
+    desktopManager.default = "none"; # bspwm?
     windowManager.bspwm = {
       enable = true;
+      configFile = ./bspwm/bspwmrc;
+      sxhkd.configFile = ./bspwm/sxhkdrc;
     };
-    displayManager.sessionCommands = ''
-      # menu bar
-      echo BAR=${pkgs.dzen2}/bin/dzen2 BSPC=${pkgs.bspwm}/bin/bspc \
-        ${python}/bin/python3 $HOME/dotfiles/dzen/bin/update_bar \
-        > $HOME/.menubar.log 2>&1 &
-      BAR=${pkgs.dzen2}/bin/dzen2 BSPC=${pkgs.bspwm}/bin/bspc \
-        ${python}/bin/python3 $HOME/dotfiles/dzen/bin/update_bar \
-        >> $HOME/.menubar.log 2>&1 &
-    '';
+  };
+
+  networking.wireless = {
+    enable = true;
+    userControlled.enable = true;
   };
 
   environment.systemPackages = with pkgs; [
     bspwm
     sxhkd
-
-    dzen2 # bar
-    xdo   # bar tools
-    dmenu # TODO: rofi
+    refreshmon_bspwm
   ];
-
-  fonts.fonts = [ nerdfont_dejavu nerdfont_inconsolata pkgs.font-awesome-ttf ];
 }

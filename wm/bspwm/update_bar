@@ -1,0 +1,345 @@
+#! /usr/bin/env nix-shell
+#! nix-shell . -i python3
+
+import logging
+import os
+import sys
+import select
+import math
+import time
+import datetime
+import subprocess
+from collections import namedtuple
+import re
+import sched
+import psutil
+
+PENGUIN   = ''
+CLOCK     = ''
+MUTE_SPKR = ''
+LOW_SPKR  = ''
+HIGH_SPKR = ''
+RAM       = ''
+DISK      = ''
+WIFI      = ''
+PLUG      = ''
+BAT0      = ''
+BAT25     = ''
+BAT50     = ''
+BAT75     = ''
+BAT100    = ''
+COLUMNS   = ' ▁▂▃▄▅▆▇█'
+BRAILE    = ['⠀⡀⡄⡆⡇',
+             '⢀⣀⣄⣆⣇',
+             '⢠⣠⣤⣦⣧',
+             '⢰⣰⣴⣶⣷',
+             '⢸⣸⣼⣾⣿']
+
+DESKTOP_REFRESH = 0.2
+CPU_REFRESH     = 0.5
+MEMORY_REFRESH  = 2
+BATTERY_REFRESH = 2
+WIFI_REFRESH    = 2
+VOLUME_REFRESH  = 0.3
+CLOCK_REFRESH   = 1
+OUT_REFRESH = min((DESKTOP_REFRESH, CPU_REFRESH, MEMORY_REFRESH,
+                   BATTERY_REFRESH, WIFI_REFRESH, VOLUME_REFRESH,
+                   CLOCK_REFRESH))
+
+IWCONFIG = 'sudo iwconfig'
+AMIXER = 'amixer'
+
+
+def orange(string):
+    return '^fg(#FD971F){}^fg()'.format(string)
+
+def grey(string):
+    return '^fg(#3E3D31){}^fg()'.format(string)
+
+def blue_bg(string):
+    return '^bg(#86C30D){}^bg()'.format(string)
+
+def dejavu(string):
+    return '^fn(xft:DejaVuSansMono Nerd Font:pixelsize=14){}^fn()'.format(string)
+
+def strip_fmt(string):
+    return re.sub(r'\^\w+\([^\)]*\)', '', string)
+
+
+SEP = grey('   |   ')
+
+
+def volume():
+    try:
+        output = subprocess.check_output([AMIXER, 'sget', 'Master'],
+                                         stderr=subprocess.PIPE).decode()
+    except subprocess.SubprocessError as e:
+        output = ''
+
+    match = re.search('\[([0-9]+)%\]', output)
+    if match:
+        percent_vol = match.group(1)
+    else:
+        percent_vol = '??'
+
+    match = re.search('\[([o,n,f]+)\]', output)
+    if match and match.group(1) == 'on':
+        # normal
+        if int(percent_vol) > 50:
+            symbol = HIGH_SPKR
+        else:
+            symbol = LOW_SPKR
+    elif match and match.group(1) == 'off':
+        # mute
+        symbol = MUTE_SPKR
+    else:
+        symbol = '\uf00d'
+
+    return '{} {:>3}%'.format(symbol, percent_vol)
+
+
+def wifi():
+    symbol = WIFI
+    try:
+        output = subprocess.check_output(IWCONFIG, stderr=subprocess.PIPE,
+                                         shell=True).decode()
+    except subprocess.SubprocessError as e:
+        output = ''
+    match = re.search('Signal level=(-?[0-9]+) dBm', output)
+    if match:
+        signal = match.group(1)
+    else:
+        signal = '--'
+    return '{} {:>3} dBm'.format(symbol, signal)
+
+
+def clock():
+    return datetime.datetime.now().strftime('%H:%M:%S %d/%m')
+
+
+def battery():
+    batt = psutil.sensors_battery()
+    percent = batt.percent
+    if batt.power_plugged:
+        symbol = PLUG
+    else:
+        symbol = (BAT0+BAT25+BAT50+BAT75+BAT100)[int(4 - percent * 4 // 100)]
+    return '{} {:3.0f}%'.format(symbol, percent)
+
+
+def cpu():
+    symbol = CLOCK
+    cpus = psutil.cpu_percent(percpu=True)
+    percent = int(sum(cpus) / len(cpus))
+    graph = dejavu(grey(''.join(
+        BRAILE[
+            math.floor(c1 / (math.ceil(100 / len(BRAILE)) + 1))][
+            math.floor(c2 / (math.ceil(100 / len(BRAILE)) + 1))]
+        for c1, c2 in pairwise(cpus))))
+    return '{} {:3.0f}% {}'.format(symbol, percent, graph)
+
+
+def memory():
+    ram_symbol = RAM
+    ram_percent = psutil.virtual_memory().percent
+    swap_symbol = DISK
+    swap_percent = psutil.swap_memory().percent
+    return '{} {:3.0f}%  {}{:3.0f}%'.format(ram_symbol, ram_percent, swap_symbol, swap_percent)
+
+
+def pairwise(it):
+    it = iter(it)
+    for a in it:
+        try:
+            b = next(it)
+        except StopIteration:
+            b = 0
+        yield a, b
+
+
+Screen = namedtuple('Screen', 'name,active,type')
+
+
+class BSPWM:
+    desktop_types = 'ofu'
+    bspc = os.getenv('BSPC')
+    MAX_RETRY = 3
+
+    def __init__(self):
+        self._desktops = []
+        self._process = None
+
+    def update(self):
+        # ensure connected
+        attempt = 0
+        while ((self._process is None # initiated
+                or self._process.poll() is not None) # stopped running
+               and attempt < self.MAX_RETRY):
+            attempt += 1
+            logger = logging.getLogger(__name__)
+            logger.info('Subscribing (attempt %d) to window manager', attempt)
+            self.subscribe()
+            time.sleep(0.1)
+        else:
+            if attempt > 0:
+                logger.info('Subscribed to bspc')
+
+        # process new messages
+        reader = select.poll()
+        reader.register(self._process.stdout, select.POLLIN)
+
+        latest_wm_msg = None
+        while reader.poll(1):
+            msg = self._process.stdout.readline().decode()
+            if msg.startswith('W'):
+                latest_wm_msg = msg
+
+        # update
+        if latest_wm_msg:
+            logger = logging.getLogger(__name__)
+            logger.debug(latest_wm_msg)
+            self.process_update(latest_wm_msg)
+
+    def process_update(self, report):
+        self._desktops = []
+
+        for item in report.split(':'):
+            type_ = item[0].lower()
+            if type_ in BSPWM.desktop_types:
+                self._desktops.append(
+                    Screen(item[1:], item[0].isupper(), type_))
+
+    def subscribe(self):
+        cmd = [self.bspc, 'subscribe', 'report']
+        logger = logging.getLogger(__name__)
+        logger.debug(' '.join(cmd))
+        self._process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+
+    def desktops(self):
+        self.update()
+        return ' '.join((orange(desktop.name)
+                         if desktop.active
+                         else desktop.name) for desktop in self._desktops)
+
+
+class Bar:
+    PRIORITY = 1
+    bar = os.getenv('BAR')
+    bar_args = ['-h', '20', '-title-name', 'menubar']
+    MAX_RETRY = 3
+
+    def __init__(self, scheduler):
+        self._scheduler = scheduler
+        self._wm = BSPWM()
+        self._process = None
+        self._icon = PENGUIN
+        self._need_refresh = True
+        self._desktops = ''
+        self._update_every('desktops', self._wm.desktops, DESKTOP_REFRESH)
+        self._cpu = ''
+        self._update_every('cpu', cpu, CPU_REFRESH)
+        self._memory = ''
+        self._update_every('memory', memory, MEMORY_REFRESH)
+        self._battery = ''
+        self._update_every('battery', battery, BATTERY_REFRESH)
+        self._wifi = ''
+        self._update_every('wifi', wifi, WIFI_REFRESH)
+        self._volume = ''
+        self._update_every('volume', volume, VOLUME_REFRESH)
+        self._clock = ''
+        self._update_every('clock', clock, CLOCK_REFRESH)
+        self._update_output(OUT_REFRESH)
+
+    def _update_every(self, field, update_fun, interval):
+        updated_val = update_fun()
+        if updated_val != getattr(self, '_' + field):
+            self._need_refresh = True
+            setattr(self, '_' + field, updated_val)
+        self._scheduler.enter(interval, self.PRIORITY, self._update_every,
+                              (field, update_fun, interval))
+
+    def _format_output(self):
+        left = SEP.join((self._icon, self._desktops))
+        mid = SEP.join((self._cpu, self._memory, self._battery, self._wifi))
+        right = SEP.join((self._volume, self._clock))
+
+        width = 10
+
+        left = '^p(_LEFT)^p({shift}) {text}'.format(
+            shift=-1 * width, text=left)
+        mid = '^p(_CENTER)^p(-{shift}){text}'.format(
+            shift=len(strip_fmt(mid))//2*width, text=mid)
+        right = '^p(_RIGHT)^p(-{shift}){text}'.format(
+            shift=len(strip_fmt(right))*width, text=right)
+        return left+mid+right
+
+    def _update_output(self, interval):
+        self.update(self._format_output())
+        self._scheduler.enter(OUT_REFRESH, self.PRIORITY, self._update_output,
+                              (self._scheduler, ))
+
+    def update(self, text):
+        """Ensure subscribed to bar, and write to it."""
+        # ensure connected
+        attempt = 0
+        while ((self._process is None # initiated
+                or self._process.poll() is not None) # stopped running
+               and attempt < self.MAX_RETRY):
+            attempt += 1
+            logger = logging.getLogger(__name__)
+            logger.info('Subscribing (attempt %d) to bar', attempt)
+            self.subscribe()
+        else:
+            if attempt > 0:
+                logger.info('Subscribed to %s', os.path.basename(self.bar))
+
+        # send
+        if self._need_refresh:
+            logger = logging.getLogger(__name__)
+            logger.debug(text + '\n')
+            self._process.stdin.write((text + '\n').encode())
+            self._process.stdin.flush()
+            self._need_refresh = False
+
+    def subscribe(self):
+        """Initiate and subcribe to a bar process."""
+        cmd = [self.bar] + self.bar_args
+        logger = logging.getLogger(__name__)
+        logger.debug(' '.join(cmd))
+        self._process = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+
+        # bar should lie below fullscreen screens
+        # https://github.com/baskerville/bspwm/issues/484
+        try:
+            max_retry = 3
+            attempt = 0
+            bar_id = None
+            while (bar_id is None and attempt < max_retry):
+                try:
+                    bar_id = subprocess.check_output(
+                        ['xdo', 'id', '-a', 'menubar']).decode().strip()
+                except subprocess.SubprocessError as e:
+                    attempt += 1
+                    if attempt == max_retry:
+                        raise e
+                    time.sleep(0.1)
+
+            root_id = (subprocess.check_output(['xdo', 'id', '-n', 'root'])
+                       .decode().strip())
+            subprocess.check_call(['xdo', 'below', '-t', root_id, bar_id])
+        except subprocess.SubprocessError as e:
+            logger.error(str(e))
+            logger.error("Can't put bar below fullscreen. Is `xdo` installed?")
+
+
+if __name__ == '__main__':
+    args = sys.argv
+    logging.basicConfig(level=logging.DEBUG if '-v' in args else logging.INFO)
+    s = sched.scheduler(time.time, time.sleep)
+    bar = Bar(s)
+    s.run()
+
+
+# Local Variables:
+# mode: python
+# End:
