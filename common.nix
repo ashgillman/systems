@@ -186,47 +186,42 @@ in {
 
   powerManagement.enable = true;
 
-  networking.wireless = {
-    enable = true;
-    networks = {
-      # Kara
-      "Wi_Not_Eh" = {
-        psk = builtins.readFile (./secrets/wi_not_eh_secret);
-      };
-      "Yourhub TAG WiFi" = {
-        psk = "03563328";
-      };
-      # Thomas
-      "Telstra62041D" = {
-        psk = "BA19A99DF4";
-      };
-      # Brookhouse
-      "Telstra1B3F" = {
-        psk = "4631328620";
-      };
-      # Gillman BNE
-      "OPTUSVD39EE7D8" = {
-        psk = "poppydog76";
-      };
-      # Sycamore
-      "NetComm 8372" = {
-        psk = "Joniwivozi";
-      };
-      # requires 18.04
-      # "eduroam" = {
-      #   extraConfig = ''
-      #     scan_ssid=1
-      #     key_mgmt=WPA-EAP
-      #     #ca_cert="/home/gil2a4/etc/wpa_supplicant/csiro.au.pem"
-      #     eap=PEAP
-      #     phase1="peapver=0"
-      #     phase2="auth=MSCHAPV2"
-      #     identity="gil2a4@csiro.au"
-      #     password="${builtins.readFile (./secrets/wi_not_eh_secret)}"
-      #   '';
-      # };
+  networking.wireless.networks = {
+    # Kara
+    "Wi_Not_Eh" = {
+      psk = builtins.readFile (./secrets/wi_not_eh_secret);
     };
-    userControlled.enable = true;
+    "Yourhub TAG WiFi" = {
+      psk = "03563328";
+    };
+    # Thomas
+    "Telstra62041D" = {
+      psk = "BA19A99DF4";
+    };
+    # Brookhouse
+    "Telstra1B3F" = {
+      psk = "4631328620";
+    };
+    # Gillman BNE
+    "OPTUSVD39EE7D8" = {
+      psk = "poppydog76";
+    };
+    # Sycamore
+    "NetComm 8372" = {
+      psk = "Joniwivozi";
+    };
+    "eduroam" = {
+        #ca_cert="/home/gil2a4/etc/wpa_supplicant/csiro.au.pem"
+      extraConfig = ''
+        scan_ssid=1
+        key_mgmt=WPA-EAP
+        eap=PEAP
+        phase1="peapver=0"
+        phase2="auth=MSCHAPV2"
+        identity="s4407814@uq.edu.au"
+        password="${builtins.readFile (./secrets/uq_secret)}"
+      '';
+    };
   };
 
   i18n.defaultLocale = "en_AU.UTF-8";
