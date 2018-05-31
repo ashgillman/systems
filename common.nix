@@ -20,6 +20,7 @@ in {
       # "mypkgs=${mypkgsDir}" # only now for compatability
       "nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos/nixpkgs"
       "nixos-config=/etc/nixos/configuration.nix"
+      "nixos-hardware=https://github.com/NixOS/nixos-hardware/archive/master.tar.gz"
       "/nix/var/nix/profiles/per-user/root/channels"
     ];
     gc.automatic = false;
