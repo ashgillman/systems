@@ -10,6 +10,7 @@ in {
     gnumake     # make
     gnupg1      # GPG
     inetutils   # traceroute, ping, hostname, etc.
+    lsof        # list open files
     ntfs3g
     openssl
     pciutils    # lspci, etc.
