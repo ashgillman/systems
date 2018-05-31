@@ -163,7 +163,7 @@ in {
 
     # https://blog.jeaye.com/2017/07/30/nixos-revisited/#minimizing-used-disk-space
     # Auto GC every morning
-    cron.systemCronJobs = [ "0 3 * * * root /etc/admin/optimize-nix" ];
+    # cron.systemCronJobs = [ "0 3 * * * root /etc/admin/optimize-nix" ];
 
     nixosManual.showManual = true;
   };
