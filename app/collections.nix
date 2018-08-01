@@ -74,6 +74,17 @@ in {
     ubuntu_font_family
     #unifont
     #ipaexfont
+    liberation_ttf
+    dejavu_fonts
+    bakoma_ttf
+    gentium
+    ubuntu_font_family
+    terminus_font
+    caladea
+    carlito
+    liberation_ttf
+    liberationsansnarrow
+    google-fonts
   ];
 
   music = with pkgs; [

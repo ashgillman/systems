@@ -168,18 +168,24 @@ in {
     nixosManual.showManual = true;
   };
 
+  virtualisation.docker.enable = true;
+
   fonts = {
+    enableDefaultFonts = true;
     enableCoreFonts = true;
     enableFontDir = true;
     enableGhostscriptFonts = true;
     fonts = collections.fonts;
-    fontconfig.defaultFonts.monospace = [ "inconsolata" ];
+    fontconfig = {
+      enable = true;
+      defaultFonts.monospace = [ "inconsolata" ];
+    };
   };
 
   users = {
     extraUsers.gil = {
       isNormalUser = true;
-      extraGroups = ["wheel" "networkmanager"];
+      extraGroups = ["wheel" "networkmanager" "docker"];
       uid = 1000;
       shell = "/run/current-system/sw/bin/zsh";
     };
