@@ -67,7 +67,7 @@ in {
       # GTK3: remove local user overrides (for determinisim, causes hard to find bugs)
       rm -f ~/.config/gtk-3.0/settings.ini
       # GTK3: add breeze theme to search path for themes
-      export XDG_DATA_DIRS="${pkgs.gnome-breeze}/share:$XDG_DATA_DIRS"
+      export XDG_DATA_DIRS="${pkgs.gnome-breeze}/share:${pkgs.gnome3.adwaita-icon-theme}/share:$XDG_DATA_DIRS"
       # GTK3: add /etc/xdg/gtk-3.0 to search path for settings.ini
       # We use /etc/xdg/gtk-3.0/settings.ini to set the icon and theme name for GTK 3
       export XDG_CONFIG_DIRS="/etc/xdg:$XDG_CONFIG_DIRS"
@@ -244,7 +244,11 @@ in {
     };
   };
 
-  i18n.defaultLocale = "en_AU.UTF-8";
+  i18n.defaultLocale = lib.mkDefault "en_AU.UTF-8";
 
-  time.timeZone = "Australia/Brisbane";
+  time.timeZone = lib.mkDefault "Australia/Brisbane";
+
+  # Keep things that need GConf happy
+  # services.dbus.packages = [ pkgs.gnome3.gconf.out ];
+  # environment.pathsToLink = [ "/etc/gconf" ];
 }
