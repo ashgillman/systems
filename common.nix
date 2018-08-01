@@ -32,6 +32,17 @@ in {
     #   "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
     #   "daftpunk-rbh.sl.csiro.au-1:cBxs3D1hNbB0DOh/6KUkUVRGKXvUTKqR/E/QLbisWqo="
     # ];
+    buildMachines = [
+      { hostName = "temple-nixbuilder";
+        system = "x86_64-linux";
+        maxJobs = 6;
+        speedFactor = 2;
+      }
+    ];
+    distributedBuilds = true;
+    extraOptions = ''
+      builders-use-substitutes = true
+    '';
   };
 
   nixpkgs.config = {
