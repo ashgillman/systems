@@ -8,14 +8,20 @@
     ./wm/xfce.nix
   ];
 
-  networking = {
-    hostName = "luigi";
-  };
+  networking.hostName = "luigi";
 
-  swapDevices = [ { device = "/var/swapfile"; } ];
+  swapDevices = [
+    { device = "/var/swapfile";
+      size = 8192; # MiB
+    }
+  ];
 
   hardware.pulseaudio.enable = true;
 
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  services.xserver.libinput.tapping = false;
+
+  # on current latest (4.17) have suspend issues
+  # https://bugzilla.redhat.com/show_bug.cgi?id=1597481
+  boot.kernelPackages = pkgs.linuxPackages_4_14;
   boot.loader.efi.canTouchEfiVariables = false;
 }
