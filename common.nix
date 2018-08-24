@@ -111,7 +111,7 @@ in {
 
       interactiveShellInit = ''
         export ZSH=${pkgs.oh-my-zsh}/share/oh-my-zsh/
-        source $HOME/.zshrc
+        #source $HOME/.zshrc
       '';
 
       promptInit = ""; # avoid a conflict with oh-my-zsh
