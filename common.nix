@@ -52,7 +52,7 @@ in {
   environment = {
     # systemPackages = common_config.systemPackages.paths;
     systemPackages = with collections;
-      base ++ extras ++ nix ++ guis;
+      base ++ extras ++ nix ++ guis ++ emacs;
 
     variables = {
       EDITOR = "vim";
