@@ -95,7 +95,6 @@ in {
 
   nix = with pkgs; [
     nix-prefetch-scripts # Prefetch source archives
-    nix-repl             # Experiment with Nix
     nix-serve            # Serve binaries
     nox                  # Other Nix tools
   ];
