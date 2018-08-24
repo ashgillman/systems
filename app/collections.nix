@@ -5,18 +5,24 @@ let
 
 in {
   base = with pkgs; [
+    # base utilities
     coreutils   # expected linux tools
+    inetutils   # traceroute, ping, hostname, etc.
+    lsof        # list open files
+    pciutils    # lspci, etc.
+    syslinux    # gethostip, etc.
+    usbutils
+
+    # filesystems
+    exfat
+    ntfs3g
+
+    # extra utilities
     curl
     gnumake     # make
     gnupg1      # GPG
-    inetutils   # traceroute, ping, hostname, etc.
-    lsof        # list open files
-    ntfs3g
     openssl
-    pciutils    # lspci, etc.
     unzip
-    usbutils
-    syslinux    # gethostip
     vimHugeX    # simple editor + bells + whistles
     wget
     xlibs.xev
