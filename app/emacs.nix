@@ -13,52 +13,74 @@ let
     epkgs: (with epkgs; [
       # nix-env -qaPA nixos.emacsPackagesNg
       auctex
-      avy
+      #avy
       ag
-      base16-theme
-      #cmake-mode # Broken
-      # company
-      # company-anaconda
-      # company-math
-      # company-nixos-options
-      csv-mode
-      cython-mode
+      #base16-theme
       diminish
-      docker
-      dockerfile-mode
-      elpy
-      evil
-      evil-leader
-      evil-indent-textobject
-      evil-jumper
-      evil-magit
-      evil-surround
       exec-path-from-shell
       flycheck
-      ggtags
-      graphviz-dot-mode
       guide-key
       helm
       helm-ag
       helm-projectile
       highlight-symbol
       htmlize
-      lua-mode
-      magit
       markdown-mode
       monokai-theme
-      nix-mode
-      ob-ipython
-      org-ac
       powerline
       powerline-evil
       projectile
       project-root
       rainbow-mode
       wgrep-ag
-      yasnippet
+      #yasnippet
+
+      # programming
+      csv-mode
+      docker
+      dockerfile-mode
+      ggtags
+      graphviz-dot-mode
+      lua-mode
+      magit
+      nix-mode
       yaml-mode
       wakatime-mode
+
+      # c++
+      ac-clang
+      clang-format
+      #cmake-ide
+      cmake-mode
+      flycheck-irony
+      irony
+      rtags
+      #helm-rtags
+
+      # company
+      company
+      company-anaconda
+      company-irony
+      company-irony-c-headers
+      company-math
+      company-nixos-options
+
+      # evil
+      evil
+      evil-leader
+      evil-indent-textobject
+      evil-jumper
+      evil-magit
+      evil-surround
+
+      # org mode
+      org-ac
+
+      # python
+      cython-mode
+      elpy
+      ob-ipython
+
     ]) ++ (with epkgs.elpaPackages; [
     ]) ++ (with epkgs.melpaStablePackages; [
     ]) ++ (with epkgs.melpaPackages; [
@@ -101,11 +123,11 @@ let
           gitAndTools.git gitAndTools.transcrypt # for magit
           # aspell # spell checking
         ]) ++ (with pkgs.python3.pkgs; [
+          autopep8
           elpy
-          jedi
           flake8
           importmagic
-          autopep8
+          jedi
           yapf
         ])
       );

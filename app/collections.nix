@@ -61,8 +61,10 @@ in {
     zathura                    # pdf
   ];
 
-  emacs = [
+  emacs = with pkgs; [
     myEmacs
+    rtags   # for rdm
+    irony-server
   ];
 
   fonts = with pkgs; with import ./fonts.nix { inherit stdenv pkgs; }; [
