@@ -18,7 +18,26 @@
 
   hardware.pulseaudio.enable = true;
 
-  services.xserver.libinput.tapping = false;
+  services = {
+    xserver.libinput.tapping = false;
+
+    httpd = {
+      enable = true;
+      adminAddr = "gillmanash@gmail.com";
+      documentRoot = "/home/gil/notebooks";
+      extraConfig = ''
+        # localhost/~gil
+        # UserDir notebooks
+
+        # Only localhost
+        <Location "/">
+        Order Deny,allow
+        Deny from all
+        Allow from 127.0.0.0/255.0.0.0 ::1/128
+        </Location>
+      '';
+    };
+  };
 
   # on current latest (4.17) have suspend issues
   # https://bugzilla.redhat.com/show_bug.cgi?id=1597481
